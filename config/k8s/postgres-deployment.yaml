@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uc16-postgres
+  labels:
+    app: uc16-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: uc16-postgres
+  template:
+    metadata:
+      labels:
+        app: uc16-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: 192.168.1.233:5000/uc16_postgres:latest
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: postgres-env
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: pgdata
+          emptyDir: {}
