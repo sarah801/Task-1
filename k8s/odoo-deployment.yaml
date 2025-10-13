@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uc16-odoo
+  labels:
+    app: uc16-odoo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: uc16-odoo
+  template:
+    metadata:
+      labels:
+        app: uc16-odoo
+    spec:
+      containers:
+        - name: odoo
+          image: <JENKINS_IP>:5000/uc16_odoo:latest
+          command: ["odoo", "--dev", "xml"]
+          ports:
+            - containerPort: 8069
+          envFrom:
+            - secretRef:
+                name: odoo-env
+          volumeMounts:
+            - name: odoo-data
+              mountPath: /var/lib/odoo
+            - name: extra-addons
+              mountPath: /mnt/extra-addons
+      volumes:
+        - name: odoo-data
+          emptyDir: {}
+        - name: extra-addons
+          emptyDir: {}
+
