@@ -23,7 +23,7 @@ pipeline {
         script {
           echo "Building Odoo and Postgres images..."
           sh "docker build -t ${ODOO_IMAGE} -f odoo.Dockerfile ."
-          sh "docker build -t ${PG_IMAGE} -f postgres.Dockerfile ."
+         // sh "docker build -t ${PG_IMAGE} -f postgres.Dockerfile ."
         }
       }
     }
@@ -38,7 +38,7 @@ pipeline {
                 echo "$DPASS" | docker login ${REGISTRY} --username "$DUSER" --password-stdin || true
               fi
               docker push ${ODOO_IMAGE}
-              docker push ${PG_IMAGE}
+            //  docker push ${PG_IMAGE}
             '''
           }
         }
@@ -51,10 +51,10 @@ pipeline {
         withCredentials([file(credentialsId: "${KUBECONFIG_CRED}", variable: 'KUBECONFIG_FILE')]) {
           sh '''
             export KUBECONFIG=${KUBECONFIG_FILE}
-            kubectl apply -f k8s/postgres-deployment.yaml
-            kubectl apply -f k8s/postgres-service.yaml
+        //    kubectl apply -f k8s/postgres-deployment.yaml
+          //  kubectl apply -f k8s/postgres-service.yaml
             kubectl apply -f k8s/odoo-deployment.yaml
-            kubectl apply -f k8s/odoo-service.yaml
+            // kubectl apply -f k8s/odoo-service.yaml
           '''
         }
       }
