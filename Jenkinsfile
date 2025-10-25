@@ -14,7 +14,7 @@ pipeline {
     stage('Checkout') {
       steps {
         echo "Checking out source code..."
-        checkout scm
+        checkout scmGit(branches: [[name: 'main']], extensions: [], userRemoteConfigs: [[credentialsId: 'github_credentials', url: 'https://github.com/sarah801/Task-1.git']])
       }
     }
 
