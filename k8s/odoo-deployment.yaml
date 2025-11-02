@@ -14,7 +14,11 @@ spec:
       labels:
         app: uc16-odoo
     spec:
+      # NodeSelector to force pod onto worker01
+      #nodeSelector:
+        #kubernetes.io/hostname: k8s-worker02
       containers:
+<<<<<<< HEAD
         - name: odoo
           image: 192.168.1.233:9955/uc16_odoo:latest
           command: ["odoo", "--dev", "xml"]
@@ -29,8 +33,27 @@ spec:
             - name: extra-addons
               mountPath: /mnt/extra-addons
       volumes:
+=======
+      - name: odoo
+        image: 192.168.1.233:5000/uc16_odoo:latest
+        command: ["odoo", "--dev", "xml"]
+        ports:
+        - containerPort: 8069
+        envFrom:
+        - secretRef:
+            name: odoo-env
+        volumeMounts:
+>>>>>>> d1b7712 (Initial commit)
         - name: odoo-data
-          emptyDir: {}
+          mountPath: /var/lib/odoo
         - name: extra-addons
-          emptyDir: {}
+          mountPath: /mnt/extra-addons
+      volumes:
+      - name: odoo-data
+        persistentVolumeClaim:
+          claimName: odoo-pvc
+      - name: extra-addons
+        hostPath:
+          path: /mnt/extra-addons
+          type: DirectoryOrCreate
 

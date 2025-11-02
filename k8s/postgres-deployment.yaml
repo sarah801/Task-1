@@ -14,18 +14,21 @@ spec:
       labels:
         app: uc16-postgres
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: k8s-worker02
       containers:
-        - name: postgres
-          image: <JENKINS_IP>:5000/uc16_postgres:latest
-          ports:
-            - containerPort: 5432
-          envFrom:
-            - secretRef:
-                name: postgres-env
-          volumeMounts:
-            - name: pgdata
-              mountPath: /var/lib/postgresql/data
-      volumes:
+      - name: postgres
+        image: 192.168.1.233:5000/uc16_postgres:latest
+        ports:
+        - containerPort: 5432
+        envFrom:
+        - secretRef:
+            name: postgres-env
+        volumeMounts:
         - name: pgdata
-          emptyDir: {}
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: pgdata
+        persistentVolumeClaim:
+          claimName: uc16-postgres-pvc
 

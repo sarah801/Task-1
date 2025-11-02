@@ -6,7 +6,7 @@ spec:
   selector:
     app: uc16-postgres
   ports:
-    - port: 5432
-      targetPort: 5432
+  - port: 5432
+    targetPort: 5432
   clusterIP: None
 
