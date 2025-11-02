@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: odoo
-          image: <JENKINS_IP>:5000/uc16_odoo:latest
+          image: 192.168.1.233:9955/uc16_odoo:latest
           command: ["odoo", "--dev", "xml"]
           ports:
             - containerPort: 8069
