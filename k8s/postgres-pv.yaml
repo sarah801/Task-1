@@ -11,11 +11,4 @@ spec:
   hostPath:
     path: /mnt/data/uc16-postgres
     type: DirectoryOrCreate
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-        - matchExpressions:
-            - key: kubernetes.io/hostname
-              operator: In
-              values:
-                - k8s-worker01
+

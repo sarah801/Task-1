@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: uc16-postgres-pvc
-  namespace: odoo-app
+  #namespace: odoo-app
 spec:
   accessModes:
     - ReadWriteOnce
