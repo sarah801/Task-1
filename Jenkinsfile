@@ -4,7 +4,7 @@ pipeline {
   environment {
     REGISTRY        = "192.168.1.233"       // Local registry IP
     ODOO_IMAGE      = "${REGISTRY}/uc16_odoo:latest"
-    DOCKER_CREDS    = "docker-registry-creds"    // Username/password credential ID
+    DOCKER_CREDS    = "docker-creds"    // Username/password credential ID
   }
 
   stages {
@@ -12,7 +12,7 @@ pipeline {
  stage('Checkout') {
       steps {
         echo "Checking out source code..."
-        checkout scmGit(branches: [[name: 'main']], extensions: [], userRemoteConfigs: [[credentialsId: 'github_credentials', url: 'https://github.com/sarah801/Task-1.git']])
+        checkout scmGit(branches: [[name: 'main']], extensions: [], userRemoteConfigs: [[credentialsId: 'github_conf', url: 'https://github.com/sarah801/Task-1.git']])
       }
     }
 
@@ -34,7 +34,7 @@ pipeline {
           withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDS}", usernameVariable: 'DUSER', passwordVariable: 'DPASS')]) {
             sh '''
               if [ -n "$DUSER" ]; then
-                echo "$DPASS" | docker login ${REGISTRY} --username "$DUSER" --password-stdin || true
+                echo "$DPASS" | docker login http://${REGISTRY} --username "$DUSER" --password-stdin || true
               fi
               docker push ${ODOO_IMAGE}
               
