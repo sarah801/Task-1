@@ -2,9 +2,8 @@ pipeline {
   agent any
 
   environment {
-    REGISTRY        = "192.168.1.233:5000"       // Local registry IP
+    REGISTRY        = "192.168.1.233"       // Local registry IP
     ODOO_IMAGE      = "${REGISTRY}/uc16_odoo:latest"
-    KUBECONFIG_CRED = "kubeconfig-jenkins"       // Secret file credential ID
     DOCKER_CREDS    = "docker-registry-creds"    // Username/password credential ID
   }
 
@@ -48,10 +47,10 @@ pipeline {
     stage('Deploy to Kubernetes') {
       steps {
         echo "Deploying to Kubernetes..."
-        withCredentials([file(credentialsId: "${KUBECONFIG_CRED}", variable: 'KUBECONFIG_FILE')]) {
+        withCredentials([file(credentialsId: 'kubeconfigCred', variable: 'KubeConfigCred')]) {
           sh '''
-            export KUBECONFIG=${KUBECONFIG_FILE}
-            kubectl apply -f k8s/odoo-deployment.yaml
+            
+            kubectl apply -f k8s/odoo-deployment.yaml --kubeconfig=${KubeConfigCred}
           '''
         }
       }

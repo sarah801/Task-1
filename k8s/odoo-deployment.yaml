@@ -15,13 +15,12 @@ spec:
         app: uc16-odoo
     spec:
       # NodeSelector to force pod onto worker01
-      #nodeSelector:
-        #kubernetes.io/hostname: k8s-worker02
+      # nodeSelector:
+      #   kubernetes.io/hostname: k8s-worker02
       nodeName: k8s-worker02
       containers:
-<<<<<<< HEAD
         - name: odoo
-          image: 192.168.1.233:9955/uc16_odoo:latest
+          image: 192.168.1.233/uc16_odoo:latest
           command: ["odoo", "--dev", "xml"]
           ports:
             - containerPort: 8069
@@ -33,36 +32,18 @@ spec:
               mountPath: /var/lib/odoo
             - name: extra-addons
               mountPath: /mnt/extra-addons
+            - name: odoo-conf
+              mountPath: /etc/odoo
       volumes:
-=======
-      - name: odoo
-        image: 192.168.1.233/uc16_odoo
-        command: ["odoo", "--dev", "xml"]
-        ports:
-        - containerPort: 8069
-        envFrom:
-        - secretRef:
-            name: odoo-env
-        - configMapRef:
-            name: odoo-config
-        volumeMounts:
->>>>>>> d1b7712 (Initial commit)
         - name: odoo-data
-          mountPath: /var/lib/odoo
+          persistentVolumeClaim:
+            claimName: new-odoo-pvc
         - name: extra-addons
-          mountPath: /mnt/extra-addons
- #       - name: odoo-conf
- #         mountPath: /etc/odoo
-      volumes:
-      - name: odoo-data
-        persistentVolumeClaim:
-          claimName: new-odoo-pvc
-      - name: extra-addons
-        hostPath:
-          path: /mnt/extra-addons
-          type: DirectoryOrCreate
+          hostPath:
+            path: /mnt/extra-addons
+            type: DirectoryOrCreate
+        - name: odoo-conf
+          hostPath:
+            path: /mnt/sara-odoo-conf
+            type: DirectoryOrCreate
 
-#      - name: odoo-conf
-#        hostPath:
-#          path: /mnt/sara-odoo-conf
-#          type: DirectoryOrCreate
