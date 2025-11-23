@@ -7,8 +7,8 @@ USER root
 COPY ./config/odoo.conf /etc/odoo/odoo.conf
 
 
-COPY /home/odoo-support/uc_con/uc16_custom /mnt/extra-addons
-COPY /home/odoo-support/uc_con/addons16_new /mnt/enterprise
+COPY ./uc16_custom /mnt/extra-addons
+COPY ./addons16_new /mnt/enterprise
 
 
 RUN chown -R odoo:odoo /mnt/extra-addons /mnt/enterprise /etc/odoo
