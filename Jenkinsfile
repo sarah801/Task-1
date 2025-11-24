@@ -18,7 +18,8 @@ pipeline {
 
     stage('Build Docker Image') {
       when {
-        branch 'main'
+        // FIX: Changed 'main' to '*main' to match 'main' or 'origin/main'
+        branch '*main' 
       }
       steps {
         script {
@@ -30,7 +31,8 @@ pipeline {
 
     stage('Push Docker Image') {
       when {
-        branch 'main'
+        // FIX: Changed 'main' to '*main'
+        branch '*main'
       }
       steps {
         script {
@@ -47,7 +49,8 @@ pipeline {
 
     stage('Deploy to Kubernetes') {
       when {
-        branch 'main'
+        // FIX: Changed 'main' to '*main'
+        branch '*main'
       }
       steps {
         echo "Deploying to Kubernetes..."
@@ -61,7 +64,7 @@ pipeline {
 
     stage('Staging Branch Verification') {
       when {
-        branch 'stage'
+        branch 'stage' // No change needed here
       }
       steps {
         echo "Running staging checks…"
@@ -70,13 +73,26 @@ pipeline {
     }
 
   }
+ 
+ // ... post section remains the same
 
-  post {
-    success {
-      echo "✅ Pipeline executed successfully on ${env.BRANCH_NAME}"
-    }
-    failure {
-      echo "❌ Pipeline failed on ${env.BRANCH_NAME}"
-    }
-  }
+
+
+post {
+
+success {
+
+echo "✅ Pipeline executed successfully on ${env.BRANCH_NAME}"
+
+}
+
+failure {
+
+echo "❌ Pipeline failed on ${env.BRANCH_NAME}"
+
+}
+
+}
+
+}
 }
