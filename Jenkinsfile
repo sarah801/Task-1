@@ -61,7 +61,7 @@ pipeline {
 
     stage('Staging Branch Verification') {
       when {
-        branch 'staging'
+        branch 'stage'
       }
       steps {
         echo "Running staging checks…"
