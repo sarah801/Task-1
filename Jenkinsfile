@@ -2,42 +2,43 @@ pipeline {
   agent any
 
   environment {
-    REGISTRY        = "192.168.1.233"       // Local registry IP
-    ODOO_IMAGE      = "${REGISTRY}/uc16_odoo:latest"
-    DOCKER_CREDS    = "docker-creds"    // Username/password credential ID
+    REGISTRY     = "192.168.1.233"
+    ODOO_IMAGE   = "${REGISTRY}/uc16_odoo:${BRANCH_NAME}"
+    DOCKER_CREDS = "docker-creds"
   }
 
   stages {
 
- stage('Checkout') {
+    stage('Checkout') {
       steps {
-        echo "Checking out source code..."
-        checkout scmGit(branches: [[name: 'main']], extensions: [], userRemoteConfigs: [[credentialsId: 'github_conf', url: 'https://github.com/sarah801/Task-1.git']])
+        echo "Checking out branch: ${env.BRANCH_NAME}"
+        checkout scm
       }
     }
 
-
-    stage('Build Docker Images') {
+    stage('Build Docker Image') {
+      when {
+        branch 'main'
+      }
       steps {
         script {
-          echo "Building Odoo  image..."
+          echo "Building Docker image for MAIN branch..."
           sh "docker build -t ${ODOO_IMAGE} -f odoo.Dockerfile ."
-          
         }
       }
     }
 
-    stage('Push Docker Images') {
+    stage('Push Docker Image') {
+      when {
+        branch 'main'
+      }
       steps {
         script {
-          echo "Pushing images to local registry..."
+          echo "Pushing image to Local Registry..."
           withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDS}", usernameVariable: 'DUSER', passwordVariable: 'DPASS')]) {
             sh '''
-              if [ -n "$DUSER" ]; then
-                echo "$DPASS" | docker login http://${REGISTRY} --username "$DUSER" --password-stdin || true
-              fi
+              echo "$DPASS" | docker login http://${REGISTRY} --username "$DUSER" --password-stdin
               docker push ${ODOO_IMAGE}
-              
             '''
           }
         }
@@ -45,24 +46,37 @@ pipeline {
     }
 
     stage('Deploy to Kubernetes') {
+      when {
+        branch 'main'
+      }
       steps {
         echo "Deploying to Kubernetes..."
-        withCredentials([file(credentialsId: 'kubeconfigCred', variable: 'KubeConfigCred')]) {
+        withCredentials([file(credentialsId: 'kubeconfigCred', variable: 'KUBECONFIG_FILE')]) {
           sh '''
-            
-            kubectl apply -f k8s/odoo-deployment.yaml --kubeconfig=${KubeConfigCred}
+            kubectl apply -f k8s/odoo-deployment.yaml --kubeconfig=${KUBECONFIG_FILE}
           '''
         }
       }
     }
+
+    stage('Staging Branch Verification') {
+      when {
+        branch 'staging'
+      }
+      steps {
+        echo "Running staging checks…"
+        // You can add linting, unit tests, etc.
+      }
+    }
+
   }
 
   post {
     success {
-      echo "✅ Pipeline completed successfully."
+      echo "✅ Pipeline executed successfully on ${env.BRANCH_NAME}"
     }
     failure {
-      echo "❌ Pipeline failed. Check the logs in Jenkins."
+      echo "❌ Pipeline failed on ${env.BRANCH_NAME}"
     }
   }
 }
