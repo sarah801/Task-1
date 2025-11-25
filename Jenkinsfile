@@ -17,7 +17,7 @@ pipeline {
     
     stage('Staging - Tests & Verification') {
       when {
-        branch 'staging'
+        branch 'stage'
       }
       steps {
         echo "🧪 Running tests on staging branch..."
