@@ -80,7 +80,13 @@ pipeline {
         withCredentials([file(credentialsId: 'kubeconfigCred', variable: 'KUBECONFIG_FILE')]) {
           sh '''
             # Update deployment with new image
-            kubectl apply -f k8s/odoo-deployment odoo=${ODOO_IMAGE} --kubeconfig=${KUBECONFIG_FILE}
+            kubectl apply -f k8s/odoo-deployment.yaml odoo=${ODOO_IMAGE} --kubeconfig=${KUBECONFIG_FILE}
+            kubectl apply -f k8s/odoo-service.yaml odoo=${ODOO_IMAGE} --kubeconfig=${KUBECONFIG_FILE}
+            echo "🔄 Updating deployment image..."
+            kubectl set image deployment/uc16-odoo uc16-odoo=${ODOO_IMAGE} --kubeconfig=${KUBECONFIG_FILE}
+            echo "⏳ Waiting for rollout..."
+            kubectl rollout status deployment/uc16-odoo --kubeconfig=${KUBECONFIG_FILE}
+      '''
           '''
         }
       }
