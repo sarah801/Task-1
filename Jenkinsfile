@@ -2,11 +2,9 @@ pipeline {
     agent any
 
     environment {
-        // Ensure your Jenkins server can reach this IP (and allow HTTP if not HTTPS)
-        REGISTRY     = "192.168.1.233" 
+        REGISTRY     = "192.168.1.233"
         ODOO_IMAGE   = "${REGISTRY}/uc16_odoo:${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
         DOCKER_CREDS = "docker-creds"
-        // It is good practice to define the container name used in K8s deployment here
         K8S_CONTAINER_NAME = "odoo"
         K8S_DEPLOYMENT_NAME = "uc16-odoo"
     }
@@ -24,7 +22,7 @@ pipeline {
                 branch 'stage'
             }
             steps {
-                echo "🧪 Validating project structure on stage branch..."
+                echo "🧪 Running tests and validation on staging branch..."
                 sh '''
                     # Check required files exist
                     echo "Checking required files..."
@@ -35,34 +33,34 @@ pipeline {
                     # Validate odoo.conf syntax (checking for [options] header)
                     echo "Validating odoo.conf..."
                     grep -q "\\[options\\]" config/odoo.conf || { echo "ERROR: Invalid odoo.conf"; exit 1; }
-                    
-                    echo "✅ Project structure validation passed!"
+
+                    echo "✅ All staging validations passed!"
+                    echo "📝 Ready for Pull Request to main branch"
                 '''
             }
         }
 
-        stage('Build Docker Image') {
-            when {
-                // In Multibranch pipelines, strictly matching 'main' is usually safest
-                branch 'main' 
-            }
-            steps {
-                script {
-                    echo "🐳 Building Docker image for MAIN branch..."
-                    sh "docker build -t ${ODOO_IMAGE} -f odoo.Dockerfile ."
-                }
-            }
-        }
-
-        stage('Push Docker Image') {
+        stage('Production - Build Docker Image') {
             when {
                 branch 'main'
             }
             steps {
                 script {
-                    echo "📤 Pushing image to Local Registry..."
+                    echo "🐳 Building Docker image for PRODUCTION deployment..."
+                    echo "Image tag: ${ODOO_IMAGE}"
+                    sh "docker build -t ${ODOO_IMAGE} -f odoo.Dockerfile ."
+                }
+            }
+        }
+
+        stage('Production - Push to Registry') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    echo "📤 Pushing image to registry at ${REGISTRY}..."
                     withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDS}", usernameVariable: 'DUSER', passwordVariable: 'DPASS')]) {
-                        // Added handling for insecure-registry if your IP uses HTTP
                         sh '''
                             echo "$DPASS" | docker login ${REGISTRY} --username "$DUSER" --password-stdin
                             docker push ${ODOO_IMAGE}
@@ -73,28 +71,34 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Production - Deploy to Kubernetes') {
             when {
                 branch 'main'
             }
             steps {
-                echo "🚀 Deploying to Kubernetes..."
+                echo "🚀 Deploying to Production Kubernetes cluster..."
                 withCredentials([file(credentialsId: 'kubeconfigCred', variable: 'KUBECONFIG_FILE')]) {
                     script {
                         sh """
-                            # 1. Apply the Service (usually static)
+                            # Apply the Service
+                            echo "Applying Kubernetes service..."
                             kubectl apply -f k8s/odoo-service.yaml --kubeconfig=${KUBECONFIG_FILE}
-                            
-                            # 2. Apply the Deployment structure (ensures object exists)
+
+                            # Apply the Deployment structure
+                            echo "Applying Kubernetes deployment..."
                             kubectl apply -f k8s/odoo-deployment.yaml --kubeconfig=${KUBECONFIG_FILE}
-                            
-                            # 3. Force update the image to the specific build tag
+
+                            # Update the image to the new build
                             echo "🔄 Updating deployment image to: ${ODOO_IMAGE}"
                             kubectl set image deployment/${K8S_DEPLOYMENT_NAME} ${K8S_CONTAINER_NAME}=${ODOO_IMAGE} --kubeconfig=${KUBECONFIG_FILE}
-                            
-                            # 4. Wait for rollout
-                            echo "⏳ Waiting for rollout..."
-                            kubectl rollout status deployment/${K8S_DEPLOYMENT_NAME} --kubeconfig=${KUBECONFIG_FILE}
+
+                            # Wait for rollout to complete
+                            echo "⏳ Waiting for rollout to complete..."
+                            kubectl rollout status deployment/${K8S_DEPLOYMENT_NAME} --kubeconfig=${KUBECONFIG_FILE} --timeout=5m
+
+                            # Verify deployment
+                            echo "✅ Verifying deployment..."
+                            kubectl get pods -l app=${K8S_DEPLOYMENT_NAME} --kubeconfig=${KUBECONFIG_FILE}
                         """
                     }
                 }
@@ -104,10 +108,26 @@ pipeline {
 
     post {
         success {
-            echo "✅ Pipeline executed successfully on ${env.BRANCH_NAME}"
+            script {
+                if (env.BRANCH_NAME == 'stage') {
+                    echo "✅ Staging validation successful! Ready to create PR to main branch."
+                } else if (env.BRANCH_NAME == 'main') {
+                    echo "✅ Production deployment successful!"
+                    echo "📦 Deployed image: ${ODOO_IMAGE}"
+                }
+            }
         }
         failure {
-            echo "❌ Pipeline failed on ${env.BRANCH_NAME}"
+            script {
+                if (env.BRANCH_NAME == 'stage') {
+                    echo "❌ Staging validation failed! Fix issues before creating PR."
+                } else if (env.BRANCH_NAME == 'main') {
+                    echo "❌ Production deployment failed!"
+                }
+            }
+        }
+        always {
+            echo "Pipeline completed for branch: ${env.BRANCH_NAME}"
         }
     }
 }
