@@ -19,11 +19,22 @@ pipeline {
       when {
         branch 'stage'
       }
-      steps {
-        echo "🧪 Running tests on staging branch..."
-        // Add your tests here:
-        // sh 'npm test' or 'pytest' or linting
-        sh 'echo "Tests passed!"'
+        steps {
+    echo "🧪 Validating project structure on stage branch..."
+    
+    sh '''
+      # Check required files exist
+      echo "Checking required files..."
+      test -f odoo.Dockerfile || { echo "ERROR: odoo.Dockerfile not found"; exit 1; }
+      test -f config/odoo.conf || { echo "ERROR: odoo.conf not found"; exit 1; }
+      test -d uc16_custom || { echo "ERROR: uc16_custom directory not found"; exit 1; }
+      
+      # Validate odoo.conf syntax
+      echo "Validating odoo.conf..."
+      grep -q "\[options\]" config/odoo.conf || { echo "ERROR: Invalid odoo.conf"; exit 1; }
+      
+      echo "✅ Project structure validation passed!"
+    '''
       }
     }
     
@@ -69,8 +80,13 @@ pipeline {
         withCredentials([file(credentialsId: 'kubeconfigCred', variable: 'KUBECONFIG_FILE')]) {
           sh '''
             # Update deployment with new image
-            kubectl set image deployment/odoo-deployment odoo=${ODOO_IMAGE} --kubeconfig=${KUBECONFIG_FILE}
-            kubectl rollout status deployment/odoo-deployment --kubeconfig=${KUBECONFIG_FILE}
+            kubectl apply -f k8s/odoo-deployment.yaml odoo=${ODOO_IMAGE} --kubeconfig=${KUBECONFIG_FILE}
+            kubectl apply -f k8s/odoo-service.yaml odoo=${ODOO_IMAGE} --kubeconfig=${KUBECONFIG_FILE}
+            echo "🔄 Updating deployment image..."
+            kubectl set image deployment/uc16-odoo uc16-odoo=${ODOO_IMAGE} --kubeconfig=${KUBECONFIG_FILE}
+            echo "⏳ Waiting for rollout..."
+            kubectl rollout status deployment/uc16-odoo --kubeconfig=${KUBECONFIG_FILE}
+      '''
           '''
         }
       }
