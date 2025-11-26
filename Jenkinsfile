@@ -19,7 +19,10 @@ pipeline {
 
         stage('Staging - Tests & Verification') {
             when {
-                branch 'stage'
+                anyOf {
+                    branch 'stage'
+                    branch 'main'
+                }
             }
             steps {
                 echo "🧪 Running tests and validation on staging branch..."
