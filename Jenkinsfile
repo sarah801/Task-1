@@ -74,6 +74,8 @@ pipeline {
 
                             # Apply the Deployment structure
                             echo "Applying Kubernetes deployment..."
+                            #sh "sed -i 's|image:.*|image: ${ODOO_IMAGE}|g\' K8s/odoo-deployment.yml"
+ 
                             kubectl apply -f k8s/odoo-deployment.yaml --kubeconfig=${KUBECONFIG_FILE}
 
                             # Update the image to the new build
