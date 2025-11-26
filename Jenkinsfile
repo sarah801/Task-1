@@ -41,9 +41,6 @@ pipeline {
         }
 
         stage('Production - Build Docker Image') {
-            when {
-                branch 'main'
-            }
             steps {
                 script {
                     echo "🐳 Building Docker image for PRODUCTION deployment..."
@@ -54,9 +51,6 @@ pipeline {
         }
 
         stage('Production - Push to Registry') {
-            when {
-                branch 'main'
-            }
             steps {
                 script {
                     echo "📤 Pushing image to registry at ${REGISTRY}..."
@@ -72,9 +66,6 @@ pipeline {
         }
 
         stage('Production - Deploy to Kubernetes') {
-            when {
-                branch 'main'
-            }
             steps {
                 echo "🚀 Deploying to Production Kubernetes cluster..."
                 withCredentials([file(credentialsId: 'kubeconfigCred', variable: 'KUBECONFIG_FILE')]) {
