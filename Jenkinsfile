@@ -1,6 +1,5 @@
 pipeline {
     agent any
-
     environment {
         REGISTRY     = "192.168.1.233"
         ODOO_IMAGE   = "${REGISTRY}/uc16_odoo:${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
@@ -8,7 +7,6 @@ pipeline {
         K8S_CONTAINER_NAME = "odoo"
         K8S_DEPLOYMENT_NAME = "uc16-odoo"
     }
-
     stages {
         stage('Checkout') {
             steps {
@@ -16,87 +14,49 @@ pipeline {
                 checkout scm
             }
         }
-
-        stage('Staging - Tests & Verification') {
-            when {
-                    branch 'main'
-            }
+        stage('Fetch last code updates') {
             steps {
-                echo "🧪 Running tests and validation on staging branch..."
+                git(url: 'https://github.com/sarah801/Task-1.git', branch: 'stage')
                 sh '''
-                    # Check required files exist
-                    echo "Checking required files..."
-                    test -f odoo.Dockerfile || { echo "ERROR: odoo.Dockerfile not found"; exit 1; }
-                    test -f config/odoo.conf || { echo "ERROR: odoo.conf not found"; exit 1; }
-                    test -d uc16_custom || { echo "ERROR: uc16_custom directory not found"; exit 1; }
-
-                    # Validate odoo.conf syntax (checking for [options] header)
-                    echo "Validating odoo.conf..."
-                    grep -q "\\[options\\]" config/odoo.conf || { echo "ERROR: Invalid odoo.conf"; exit 1; }
-
-                    echo "✅ All staging validations passed!"
-                    echo "📝 Ready for Pull Request to main branch"
+                    echo "📥 Fetching latest code from stage branch..."
+                    ls -la
+                    git log --oneline -5
+                    echo "✅ Code fetched successfully!"
                 '''
             }
         }
-
-        stage('Production - Build Docker Image') {
+        stage('Build Image') {
             steps {
-                script {
-                    echo "🐳 Building Docker image for PRODUCTION deployment..."
+                sh "docker build -t ${ODOO_IMAGE} -f odoo.Dockerfile ."
+                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDS}", usernameVariable: 'DUSER', passwordVariable: 'DPASS')]) {
                     echo "Image tag: ${ODOO_IMAGE}"
-                    sh "docker build -t ${ODOO_IMAGE} -f odoo.Dockerfile ."
+                    sh "docker push public.ecr.aws/k9h2m6v6/radioshash-repo:${env.BUILD_NUMBER}"
+                    sh '''
+                        echo "$DPASS" | docker login ${REGISTRY} --username "$DUSER" --password-stdin
+                        docker push ${ODOO_IMAGE}
+                        docker logout ${REGISTRY}
+                    '''
                 }
             }
         }
-
-        stage('Production - Push to Registry') {
+        stage('Update k8s files') {
             steps {
-                script {
-                    echo "📤 Pushing image to registry at ${REGISTRY}..."
-                    withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDS}", usernameVariable: 'DUSER', passwordVariable: 'DPASS')]) {
-                        sh '''
-                            echo "$DPASS" | docker login ${REGISTRY} --username "$DUSER" --password-stdin
-                            docker push ${ODOO_IMAGE}
-                            docker logout ${REGISTRY}
-                        '''
-                    }
-                }
+                sh "sed -i 's|image:.*|image: ${ODOO_IMAGE}|' ./k8s/odoo-deployment.yml"
             }
         }
-
-        stage('Production - Deploy to Kubernetes') {
+        stage('Deploy') {
             steps {
-                echo "🚀 Deploying to Production Kubernetes cluster..."
                 withCredentials([file(credentialsId: 'kubeconfigCred', variable: 'KUBECONFIG_FILE')]) {
                     script {
-                        sh """
-                            # Apply the Service
-                            echo "Applying Kubernetes service..."
-                            kubectl apply -f k8s/odoo-service.yaml --kubeconfig=${KUBECONFIG_FILE}
-
-                            # Apply the Deployment structure
-                            echo "Applying Kubernetes deployment..."
-                            kubectl apply -f k8s/odoo-deployment.yaml --kubeconfig=${KUBECONFIG_FILE}
-
-                            # Update the image to the new build
-                            echo "🔄 Updating deployment image to: ${ODOO_IMAGE}"
-                            kubectl set image deployment/${K8S_DEPLOYMENT_NAME} ${K8S_CONTAINER_NAME}=${ODOO_IMAGE} --kubeconfig=${KUBECONFIG_FILE}
-
-                            # Wait for rollout to complete
-                            echo "⏳ Waiting for rollout to complete..."
-                            kubectl rollout status deployment/${K8S_DEPLOYMENT_NAME} --kubeconfig=${KUBECONFIG_FILE} --timeout=5m
-
-                            # Verify deployment
-                            echo "✅ Verifying deployment..."
-                            kubectl get pods -l app=${K8S_DEPLOYMENT_NAME} --kubeconfig=${KUBECONFIG_FILE}
-                        """
+                        echo "Applying Kubernetes service..."
+                        sh "kubectl apply -f k8s/odoo-service.yaml --kubeconfig=${KUBECONFIG_FILE}"
+                        echo "Applying Kubernetes deployment..."
+                        sh "kubectl apply -f k8s/odoo-deployment.yaml --kubeconfig=${KUBECONFIG_FILE}"
                     }
                 }
             }
         }
     }
-
     post {
         success {
             script {
@@ -121,4 +81,4 @@ pipeline {
             echo "Pipeline completed for branch: ${env.BRANCH_NAME}"
         }
     }
-}
+} 
