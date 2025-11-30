@@ -52,6 +52,17 @@ pipeline {
 
                         echo "✅ Verifying deployment..."
                         sh "kubectl get pods -l app=${K8S_DEPLOYMENT_NAME} --kubeconfig=${KUBECONFIG_FILE}"
+                                      // Clean up evicted pods
+                echo "🧹 Cleaning up evicted pods..."
+                sh """
+                    kubectl get pods -l app=uc16-odoo --kubeconfig=${KUBECONFIG_FILE} | \
+                    grep Evicted | \
+                    awk '{print \$1}' | \
+                    xargs -r kubectl delete pod --kubeconfig=${KUBECONFIG_FILE}
+                """
+                
+                echo "✅ Verifying deployment..."
+                sh "kubectl get pods -l app=uc16-odoo --kubeconfig=${KUBECONFIG_FILE}"
                     }
                 }
             }

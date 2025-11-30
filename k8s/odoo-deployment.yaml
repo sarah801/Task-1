@@ -14,9 +14,6 @@ spec:
       labels:
         app: uc16-odoo
     spec:
-      # NodeSelector to force pod onto worker01
-      # nodeSelector:
-      #   kubernetes.io/hostname: k8s-worker02
       nodeName: k8s-worker02
       containers:
         - name: odoo
@@ -24,6 +21,14 @@ spec:
           command: ["odoo", "--dev", "xml"]
           ports:
             - containerPort: 8069
+          # Add resource limits
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
           envFrom:
             - secretRef:
                 name: odoo-env
@@ -46,4 +51,3 @@ spec:
           hostPath:
             path: /mnt/sara-odoo-conf
             type: DirectoryOrCreate
-
