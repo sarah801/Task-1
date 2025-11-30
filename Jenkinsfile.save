@@ -33,7 +33,7 @@ pipeline {
    }
      stage('update k8s files'){
      steps{
-       sh "sed -i 's|image:.*|image: ${ODOO_IMAGE}|g\' K8s/odoo-deployment.yaml"
+       sh "sed -i 's|image:.*|image: ${ODOO_IMAGE}|g\' K8s/odoo-deployment.yml"
      }
    }
 
@@ -41,14 +41,14 @@ pipeline {
      steps{
         withCredentials([file(credentialsId: 'kubeconfigCred', variable: 'KUBECONFIG_FILE')]) {
                script{
-                     sh "kubectl apply -f k8s/odoo-service.yaml --kubeconfig=${KUBECONFIG_FILE}"
-                     sh "kubectl apply -f k8s/odoo-deployment.yaml --kubeconfig=${KUBECONFIG_FILE}"
+                    sh "kubectl apply -f k8s/odoo-service.yaml --kubeconfig=${KUBECONFIG_FILE}"
+                    sh "kubectl apply -f k8s/odoo-deployment.yaml --kubeconfig=${KUBECONFIG_FILE}"
                     # Wait for rollout to complete
                     echo "⏳ Waiting for rollout to complete..."
-                    sh "kubectl rollout status deployment/${K8S_DEPLOYMENT_NAME} --kubeconfig=${KUBECONFIG_FILE}"    
+                   sh "kubectl rollout status deployment/${K8S_DEPLOYMENT_NAME} --kubeconfig=${KUBECONFIG_FILE}"     
                     # Verify deployment
                     echo "✅ Verifying deployment..."
-                    sh "kubectl get pods -l app=${K8S_DEPLOYMENT_NAME} --kubeconfig=${KUBECONFIG_FILE}"
+                    
             }
         }
      }
