@@ -30,17 +30,4 @@ Then it pushes the java app image to dockerHub repo and publish changes to githu
 
 ---
 
-## Preview
-
-- Jenkins Multi-branch Pipeline
-
-
-## <img src="images/image5.png" width="700" height="300"/>
-
----
-
-- Jenkins Automation File
-
-## <img src="images/image6.png" width="700" height="300"/>
-
----
+#
